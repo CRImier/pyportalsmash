@@ -4,9 +4,13 @@ from time import sleep
 
 import wpa_cli
 
-def PortalSmash():
+class PortalSmash():
     smashing = False
+    smash_counter = 0
+
     badnets_file = "badnets.log"
+    badnets = []
+    badnet = None
 
     def __init__(self):
         self.read_badnets()
@@ -20,15 +24,16 @@ def PortalSmash():
         with open(self.badnets_file, 'w') as f:
             f.write('\n'.join(self.badnets))
 
-    def check_conn(self, page="http://www.apple.com/library/test/success.html"):
+    def check_internet(self, page="http://www.apple.com/library/test/success.html"):
         try:
             r = requests.get(page)
         except Exception as e:
-            print("Requests exception: {}".format(repr(e))
+            print( "Requests exception: {}".format(repr(e)) )
             return None
-        return r.text.lower() == "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>".lower()
+        else:
+            return r.text.lower() == "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>".lower()
     
-    def check_wifi(self):
+    def check_connect_wifi(self):
         if self.badnet is not None:
             self.badnets.append(self.badnet)
             self.badnet = None
@@ -88,8 +93,9 @@ def PortalSmash():
 
 
 if __name__ == "__main__":
+    print("Main, running")
     smasher = PortalSmash()
-    smasher.run()
+    smasher.loop()
 
 
 
