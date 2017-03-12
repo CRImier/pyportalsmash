@@ -2,6 +2,8 @@ import requests
 import atexit
 from time import sleep
 
+from lxml import html
+
 import wpa_cli
 
 class PortalSmash():
@@ -61,8 +63,53 @@ class PortalSmash():
                     return
             return None
 
-    def smash(self, net_info):
+    def smash(self, net_info, url="http://www.google.lv"):
         print("Gotta smash that {}!".format(net_info))
+        print("Going to {}!".format(url))
+        page = requests.get(url)
+        print(page.history)
+        tree = html.fromstring(page.text)
+        forms = tree.xpath("//li/text()")
+        if forms:
+            for form in forms: print(repr(form))
+            return False
+        else:
+            #Searching for refresh tags with destination
+            meta_tags = tree.xpath("/html/head/meta/")
+            for meta_tag in meta_tags: print(repr(meta_tag))
+            destination = None
+            for tag in meta_tags:
+                print(tag.keys())
+                for key in tag.keys():
+                    print("{} - {}".format(repr(key), repr(tag.get(key))))
+                    #Registry-independent fuckery
+                    if key.lower() == "http-equiv" and tag.get(key) == "refresh":
+                        #Is a refresh tag, getting attribute
+                        content_keys = [key for key in tag.keys() if key.lower() == "content"]
+                        if not content_keys: print("Content not found!"); continue
+                        print(content_keys)
+                        content = tag.get(content_keys[0])
+                        print(content)
+                        if ";" in content:
+                            delay, destination = content.split(";")
+                        else:
+                            delay = content
+                            destination = None
+                        #Delay attr validation
+                        try:
+                            delay = int(delay)
+                        except ValueError:
+                            print("Invalid delay!")
+                            delay = 0
+                        else:
+                            #Boundary checks
+                            if delay < 0: delay = 0
+                            if delay > 10: delay = 10
+                        print("Sleeping for {}".format(delay))
+                        sleep(delay)
+                        if destination is not None:
+                            #Need to go deeper
+                            return self.smash(net_info, url=destination)
         return False
 
     def loop(self):
@@ -96,6 +143,3 @@ if __name__ == "__main__":
     print("Main, running")
     smasher = PortalSmash()
     smasher.loop()
-
-
-
